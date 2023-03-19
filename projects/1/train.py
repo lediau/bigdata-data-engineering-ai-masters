@@ -31,10 +31,8 @@ logging.info(f"TRAIN_PATH {train_path}")
 read_table_opts = dict(sep="\t", names=fields, usecols=fields[1:], index_col=False)
 df = pd.read_table(train_path, **read_table_opts)
 
-df_x, df_y = df.iloc[:, 1:], df.iloc[:, 0]
-
 X_train, X_test, y_train, y_test = train_test_split(
-    df_x, df_y, test_size=0.25, random_state=42
+     df.iloc[:, 1:], df.iloc[:, 0], test_size=0.25, random_state=42
 )
 
 logging.info(f"X cols {df_x.columns}")
