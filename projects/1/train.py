@@ -28,13 +28,13 @@ logging.info(f"TRAIN_ID {proj_id}")
 logging.info(f"TRAIN_PATH {train_path}")
 
 
-read_table_opts = dict(sep="\t", names=fields, index_col=False)
+read_table_opts = dict(sep="\t", names=fields, usecols=fields[1:], index_col=False)
 df = pd.read_table(train_path, **read_table_opts)
 
-df_x, df_y = df.iloc[:, 2:], df.iloc[:, 1]
+df_x, df_y = df.iloc[:, 1:], df.iloc[:, 0]
 
 X_train, X_test, y_train, y_test = train_test_split(
-    df_x, df_y, test_size=0.33, random_state=42
+    df_x, df_y, test_size=0.25, random_state=42
 )
 
 model.fit(X_train, y_train)

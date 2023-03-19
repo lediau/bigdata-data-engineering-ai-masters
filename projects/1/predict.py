@@ -7,7 +7,7 @@ import pandas as pd
 
 sys.path.append('.')
 
-from model import numeric_features, categorical_features
+from model import numeric_features
 
 #
 # Init the logger
