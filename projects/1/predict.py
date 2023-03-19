@@ -27,8 +27,7 @@ read_opts=dict(
 )
 
 logging.info("Predict data ...")
-logging.info(numeric_features    )
-logging.info(categorical_features)
+logging.info(numeric_features)
 
 for df in pd.read_csv(sys.stdin, **read_opts):
     pred = model.predict_proba(df.iloc[:, 1:])
