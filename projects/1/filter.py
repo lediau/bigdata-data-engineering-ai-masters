@@ -6,7 +6,7 @@ import logging
 sys.path.append('.')
 
 from model import categorical_features, numeric_features
-fields = ["id"] + numeric_features + categorical_features
+fields = ["id"] + numeric_features
 
 
 # Init the logger
