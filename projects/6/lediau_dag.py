@@ -10,7 +10,6 @@ pyspark_python = "/opt/conda/envs/dsenv/bin/python"
 
 with DAG(
         dag_id="lediau_dag",
-        start_date=datetime(2023, 5, 9),
         schedule=None,
         catchup=False,
         description="Say no to description",
