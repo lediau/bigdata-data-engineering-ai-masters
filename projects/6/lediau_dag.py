@@ -13,7 +13,7 @@ base_dir = '{{ dag_run.conf["base_dir"] if dag_run else "" }}'
 
 with DAG(
     dag_id="lediau_dag",
-    start_date=datetime(2023, 5, 8),
+    start_date=datetime(2023, 5, 9),
     schedule=None,
     catchup=False,
     description="hw6 DAG",
