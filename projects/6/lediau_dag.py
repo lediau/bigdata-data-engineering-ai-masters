@@ -17,14 +17,23 @@ with DAG(
         doc_md = "Say no to documentation",
         tags=["example"],
 ) as dag:
-    feature_eng_train_task = BashOperator(
-        task_id='feature_eng_train_task',
-        bash_command=f'conda activate dsenv; python {dag.conf["base_dir"]}/transformer.py --path-in /datasets/amazon/all_reviews_5_core_train_extra_small_sentiment.json --path-out lediau_train_out'
+    feature_eng_train_task = SparkSubmitOperator(
+        task_id="feature_eng_train",
+        application=f"{base_dir}/feature_eng.py",
+        spark_binary="/usr/bin/spark3-submit",
+        num_executors=10,
+        executor_cores=1,
+        executor_memory="2G",
+        application_args=["/datasets/amazon/all_reviews_5_core_train_extra_small_sentiment.json", "lediau_train_out"],
+        env_vars={"PYSPARK_PYTHON" : pyspark_python}
     )
 
-    download_train_task = BashOperator(
-        task_id='download_train_task',
-        bash_command=f'hdfs dfs -get lediau_train_out {dag.conf["base_dir"]}/lediau_train_out_local'
+    download_train_task = SparkSubmitOperator(
+        task_id="download_train",
+        application=f"{base_dir}/train_download.py",
+        spark_binary="/usr/bin/spark3-submit",
+        application_args=["lediau_train_out", f"{base_dir}/lediau_train_out_local"],
+        env_vars={"PYSPARK_PYTHON" : pyspark_python}
     )
 
     train_task = BashOperator(
@@ -39,9 +48,12 @@ with DAG(
         timeout=60 * 5,
     )
 
-    feature_eng_test_task = BashOperator(
-        task_id='feature_eng_test_task',
-        bash_command=f'conda activate dsenv; python {dag.conf["base_dir"]}/transformer.py --path-in /datasets/amazon/all_reviews_5_core_test_extra_small_features.json --path-out lediau_train_out'
+    feature_eng_test_task = SparkSubmitOperator(
+        task_id="feature_eng_test",
+        application=f"{base_dir}/feature_eng.py",
+        spark_binary="/usr/bin/spark3-submit",
+        application_args=["/datasets/amazon/all_reviews_5_core_test_extra_small_features.json", "lediau_test_out"],
+        env_vars={"PYSPARK_PYTHON" : pyspark_python}
     )
 
     predict_task = BashOperator(
