@@ -1,68 +1,70 @@
-import datetime
+#!/opt/conda/envs/dsenv/bin/python
 
-import pendulum
-
+from datetime import datetime
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
+from airflow.decorators import task
 from airflow.sensors.filesystem import FileSensor
-from airflow.utils.dates import days_ago
-import os
+from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 
-
-
-default_args = {
-    'start_date': days_ago(0),
-    'depends_on_past': False,
-}
+pyspark_python = "/opt/conda/envs/dsenv/bin/python"
 
 base_dir = '{{ dag_run.conf["base_dir"] if dag_run else "" }}'
-#path = os.path.join(args.path_out, output_path)
+
 with DAG(
-    'lediau_dag',
-    default_args=default_args,
-    schedule_interval=None,
-    catchup=False
-    ) as dag:
-    
-    feature_eng_task = SparkSubmitOperator(
-        application=os.path.join(base_dir, 'preprocess.py')\
-        #application="~/ozon-masters-bigdata/projects/6/preprocess.py"\
-        , task_id="feature_eng_train_task"\
-        , application_args = ['--path-in', '/datasets/amazon/all_reviews_5_core_train_extra_small_sentiment.json', '--path-out', 'lediau_train_out']\
-        ,spark_binary="/usr/bin/spark-submit"\
-        ,env_vars={"PYSPARK_PYTHON": '/opt/conda/envs/dsenv/bin/python'}
+    dag_id="lediau_dag",
+    start_date=datetime(2023, 5, 9),
+    schedule=None,
+    catchup=False,
+    description="hw6 DAG",
+    doc_md="Учебный DAG без расписания",
+    tags=["hw6"],
+) as dag:
+    feature_eng_train_task = SparkSubmitOperator(
+        task_id="feature_eng_train",
+        application=f"{base_dir}/feature_eng.py",
+        spark_binary="/usr/bin/spark3-submit",
+        num_executors=10,
+        executor_cores=1,
+        executor_memory="2G",
+        application_args=["/datasets/amazon/all_reviews_5_core_train_extra_small_sentiment.json", "lediau_train_out"],
+        env_vars={"PYSPARK_PYTHON" : pyspark_python}
     )
-    
-    train_download_task = BashOperator(
-        task_id='download_train_task',
-        bash_command=f"hdfs dfs -getmerge lediau_train_out {os.path.join(base_dir, 'lediau_train_out_local')}"#{base_dir}lediau_train_out_local",
+
+    download_train_task = SparkSubmitOperator(
+        task_id="download_train",
+        application=f"{base_dir}/train_download.py",
+        spark_binary="/usr/bin/spark3-submit",
+        application_args=["lediau_train_out", f"{base_dir}/lediau_train_out_local"],
+        env_vars={"PYSPARK_PYTHON" : pyspark_python}
     )
-    
-    
+
     train_task = BashOperator(
-        task_id='train_task',
-        bash_command=f'{"/opt/conda/envs/dsenv/bin/python"} {os.path.join(base_dir, "train.py")} --train-in {os.path.join(base_dir, "lediau_train_out_local")} --sklearn-model-out {os.path.join(base_dir, "6.joblib")}',
-        #bash_command=f'python {base_dir}train.py --train-in {base_dir}lediau_train_out_local --sklearn-model-out {base_dir}6.joblib',
+        task_id="train_model",
+        bash_command=f"/opt/conda/envs/dsenv/bin/python {base_dir}/train.py {base_dir}/lediau_train_out_local {base_dir}/6.joblib"
     )
-    
-    model_sensor = FileSensor( task_id= "model_sensor", filepath= os.path.join(base_dir, "6.joblib") )
-    
-    feature_eng_task_test = SparkSubmitOperator(
-        application=os.path.join(base_dir, "preprocess.py")\
-        , task_id="feature_eng_test_task"\
-        , application_args = ['--path-in', '/datasets/amazon/all_reviews_5_core_test_extra_small_features.json', '--path-out', 'lediau_test_out']\
-        ,spark_binary="/usr/bin/spark-submit"\
-        ,env_vars={"PYSPARK_PYTHON": '/opt/conda/envs/dsenv/bin/python'}
+
+    model_sensor = FileSensor(
+        task_id=f'sensor',
+        filepath=f"{base_dir}/6.joblib",
+        poke_interval=10,
+        timeout=2*60
+    )
+
+    feature_eng_test_task = SparkSubmitOperator(
+        task_id="feature_eng_test",
+        application=f"{base_dir}/feature_eng.py",
+        spark_binary="/usr/bin/spark3-submit",
+        application_args=["/datasets/amazon/all_reviews_5_core_test_extra_small_features.json", "lediau_test_out"],
+        env_vars={"PYSPARK_PYTHON" : pyspark_python}
     )
 
     predict_task = SparkSubmitOperator(
-        application=os.path.join(base_dir, "predict.py")\
-        , task_id="predict_task"\
-        , application_args = ['--train-in', 'lediau_test_out', '--pred-out', 'lediau_hw6_prediction', '--sklearn-model-in', f'{os.path.join(base_dir, "6.joblib")}']\
-        ,spark_binary="/usr/bin/spark-submit"\
-        ,env_vars={"PYSPARK_PYTHON": '/opt/conda/envs/dsenv/bin/python'}
-    ) 
-    
+        task_id="predict",
+        application=f"{base_dir}/predict.py",
+        spark_binary="/usr/bin/spark3-submit",
+        application_args=["lediau_test_out", "lediau_hw6_prediction", f"{base_dir}/6.joblib"],
+        env_vars={"PYSPARK_PYTHON" : pyspark_python}
+    )
 
-feature_eng_task >>  train_download_task >> train_task >> model_sensor >> feature_eng_task_test >> predict_task
+    feature_eng_train_task >> download_train_task >> train_task >> model_sensor >> feature_eng_test_task >> predict_task
