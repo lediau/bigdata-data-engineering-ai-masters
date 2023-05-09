@@ -28,8 +28,8 @@ with DAG(
     )
 
     train_task = BashOperator(
-        task_id='train_task',
-        bash_command=f'conda activate dsenv; python {dag.conf["base_dir"]}/train.py --path-in {dag.conf["base_dir"]}/lediau_train_out_local --sklean-model-out {dag.conf["base_dir"]}/6.joblib'
+        task_id="train_model",
+        bash_command=f"/opt/conda/envs/dsenv/bin/python {base_dir}/train.py {base_dir}/lediau_train_out_local {base_dir}/6.joblib"
     )
 
     model_sensor = FileSensor(
