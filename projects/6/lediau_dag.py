@@ -62,7 +62,7 @@ with DAG(
     )
 
     download_train_task >> feature_eng_train_task >> train_task
-    feature_eng_test_task >> model_sensor_task >> predict_task
+    feature_eng_test_task >> model_sensor >> predict_task
 
     # sensor_task = FileSensor(
     #     task_id=f'sensor_task',
