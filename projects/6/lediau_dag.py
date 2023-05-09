@@ -8,11 +8,12 @@ from airflow.sensors.filesystem import FileSensor
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 
 pyspark_python = "/opt/conda/envs/dsenv/bin/python"
+
 base_dir = '{{ dag_run.conf["base_dir"] if dag_run else "" }}'
 
 with DAG(
     dag_id="lediau_dag",
-    start_date=datetime(2023, 5, 9),
+    start_date=datetime(2023, 5, 8),
     schedule=None,
     catchup=False,
     description="hw6 DAG",
