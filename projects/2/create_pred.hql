@@ -3,4 +3,4 @@ create table hw2_pred
 row format delimited
 fields terminated by "\t"
 stored as textfile
-location "evercrimson_hw2_pred";
+location "lediau_hw2_pred";

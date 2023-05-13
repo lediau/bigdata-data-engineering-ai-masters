@@ -7,15 +7,23 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from joblib import dump
 
+#
+# Import model definition
+#
 from model import model, fields
 
 
+#
+# Logging initialization
+#
 logging.basicConfig(level=logging.DEBUG)
 logging.info("CURRENT_DIR {}".format(os.getcwd()))
 logging.info("SCRIPT CALLED AS {}".format(sys.argv[0]))
 logging.info("ARGS {}".format(sys.argv[1:]))
 
-
+#
+# Read script arguments
+#
 try:
   proj_id = sys.argv[1] 
   train_path = sys.argv[2]
@@ -27,17 +35,25 @@ except:
 logging.info(f"TRAIN_ID {proj_id}")
 logging.info(f"TRAIN_PATH {train_path}")
 
+#
+# Read dataset
+#
 
-read_table_opts = dict(sep="\t", names=fields, usecols=fields[1:], index_col=False)
+read_table_opts = dict(sep="\t", names=fields, index_col=False)
 df = pd.read_table(train_path, **read_table_opts)
 
-df['label'].to_csv("train-target.csv", header=False)
+df_x, df_y = df.iloc[:, 2:], df.iloc[:, 1]
 
+#split train/test
+#X_train, X_test, y_train, y_test = train_test_split(
+#    df.iloc[:,:-1], df.iloc[:,-1], test_size=0.33, random_state=42
+#)
 X_train, X_test, y_train, y_test = train_test_split(
-     df.iloc[:, 1:], df.iloc[:, 0], test_size=0.25, random_state=42
+    df_x, df_y, test_size=0.33, random_state=42
 )
-
-logging.info(f"X cols {df.columns}")
+#
+# Train the model
+#
 
 model.fit(X_train, y_train)
 
@@ -45,6 +61,7 @@ model_score = model.score(X_test, y_test)
 
 logging.info(f"model score: {model_score:.3f}")
 
+# save the model
 logging.info("model fitted!")
 dump(model, "{}.joblib".format(proj_id))
 logging.info("dumped!")
